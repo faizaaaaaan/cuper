@@ -1,0 +1,115 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgres"
+  url      = env("DATABASE_URL")
+}
+
+enum USERROLE {
+  ADMIN
+  USER
+}
+
+// Necessary for Next auth
+model Account {
+  id                       String   @id @default(cuid())
+  userId                   String
+  type                     String
+  provider                 String
+  providerAccountId        String
+  refresh_token            String? // @db.Text
+  access_token             String? // @db.Text
+  expires_at               Int?
+  token_type               String?
+  scope                    String?
+  id_token                 String? // @db.Text
+  session_state            String?
+  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refresh_token_expires_in Int?
+  createdAt                DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  role          USERROLE  @default(USER)
+  email         String?   @unique
+  password      String?
+  emailVerified DateTime?
+  joinedAt      DateTime? @default(now())
+  image         String?
+  apiToken      String?   @unique
+  credits       Int       @default(3)
+
+  // Subscription
+  customerId       String?   @unique
+  subscriptionId   String?   @unique
+  variantId        Int?      @unique
+  currentPeriodEnd DateTime?
+
+  accounts  Account[]
+  Generated Generated[]
+}
+
+model Generated {
+  id         String     @id @default(cuid())
+  title      String
+  script     String
+  voice      String
+  background String
+  music      String
+  audioUrl   String
+  videoUrl   String?
+  captions   Captions[]
+  timestamp  DateTime   @default(now())
+  User       User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String?
+}
+
+model Captions {
+  id          String     @id @default(cuid())
+  text        String
+  start       Float
+  end         Float
+  confidence  Float?
+  speaker     String?
+  Generated   Generated? @relation(fields: [generatedId], references: [id], onDelete: Cascade)
+  generatedId String?
+}
+
+model VerificationToken {
+  id      String   @id @default(cuid())
+  token   String   @unique
+  email   String
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model ResetPasswordToken {
+  id      String   @id @default(cuid())
+  token   String   @unique
+  email   String
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model TwoFactorToken {
+  id      String   @id @default(cuid())
+  token   String   @unique
+  email   String
+  expires DateTime
+
+  @@unique([email, token])
+}
